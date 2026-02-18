@@ -1,0 +1,21 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next
+/out
+
+# env files
+.env*.local
+
+# cache (large JSON files — don't upload to GitHub)
+/.cache
+
+# Secrets & Local Data
+.env.local
+.env.*.local
+.cache/
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
