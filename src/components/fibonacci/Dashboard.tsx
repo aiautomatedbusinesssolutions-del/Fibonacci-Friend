@@ -5,6 +5,7 @@ import { Activity } from "lucide-react";
 import { TickerSearch } from "./TickerSearch";
 import { FibChart } from "./FibChart";
 import { Status } from "./Status";
+import { BacktestResults } from "./BacktestResults";
 import {
   analyzeTicker,
   type HistoricalPrice,
@@ -24,7 +25,9 @@ export function Dashboard() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/historical?symbol=${encodeURIComponent(ticker)}`);
+      const res = await fetch(
+        `/api/historical?symbol=${encodeURIComponent(ticker)}`
+      );
       const json = await res.json();
 
       if (json.error || !json.data) {
@@ -49,7 +52,9 @@ export function Dashboard() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-8">
-      {/* ── Header ── */}
+      {/* ================================================================
+          HEADER
+          ================================================================ */}
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-3">
           <Activity className="h-8 w-8 text-emerald-400" />
@@ -74,7 +79,8 @@ export function Dashboard() {
       {!fibData && !error && !isLoading && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <p className="text-lg text-slate-400">
-            Enter a ticker above to see the Fibonacci levels and traffic light signal.
+            Enter a ticker above to see the Fibonacci levels and traffic light
+            signal.
           </p>
           <div className="flex items-center gap-4 text-sm text-slate-500">
             <span className="flex items-center gap-1.5">
@@ -93,7 +99,10 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* ── Results ── */}
+      {/* ================================================================
+          TOP SECTION — CURRENT VIEW
+          "What is happening RIGHT NOW?"
+          ================================================================ */}
       {fibData && prices && (
         <>
           {/* Signal banner */}
@@ -170,8 +179,16 @@ export function Dashboard() {
             </div>
           </div>
 
+          {/* ================================================================
+              BOTTOM SECTION — HISTORICAL DEEP DIVE
+              "Here's the proof from the last 5 years."
+              ================================================================ */}
+          <BacktestResults ticker={fibData.ticker} prices={prices} />
+
           {/* Disclaimer */}
-          <p className="text-center text-xs text-slate-600">{disclaimer}</p>
+          <p className="pb-8 text-center text-xs text-slate-600">
+            {disclaimer}
+          </p>
         </>
       )}
     </main>
