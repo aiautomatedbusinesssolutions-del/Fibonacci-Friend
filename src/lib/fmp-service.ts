@@ -12,31 +12,34 @@ interface FMPHistoricalEntry {
 }
 
 // ---------------------------------------------------------------------------
-// Cache helpers
+// Cache helpers (local dev only — Vercel has a read-only filesystem)
 // ---------------------------------------------------------------------------
 
 const CACHE_DIR = resolve(process.cwd(), ".cache");
 
-function ensureCacheDir(): void {
-  if (!existsSync(CACHE_DIR)) {
-    mkdirSync(CACHE_DIR, { recursive: true });
+function readCache(symbol: string): HistoricalPrice[] | null {
+  try {
+    const file = resolve(CACHE_DIR, `${symbol.toUpperCase()}.json`);
+    if (!existsSync(file)) return null;
+    const raw = readFileSync(file, "utf-8");
+    return JSON.parse(raw) as HistoricalPrice[];
+  } catch {
+    return null;
   }
 }
 
-function cachePath(symbol: string): string {
-  return resolve(CACHE_DIR, `${symbol.toUpperCase()}.json`);
-}
-
-function readCache(symbol: string): HistoricalPrice[] | null {
-  const file = cachePath(symbol);
-  if (!existsSync(file)) return null;
-  const raw = readFileSync(file, "utf-8");
-  return JSON.parse(raw) as HistoricalPrice[];
-}
-
 function writeCache(symbol: string, prices: HistoricalPrice[]): void {
-  ensureCacheDir();
-  writeFileSync(cachePath(symbol), JSON.stringify(prices, null, 2));
+  try {
+    if (!existsSync(CACHE_DIR)) {
+      mkdirSync(CACHE_DIR, { recursive: true });
+    }
+    writeFileSync(
+      resolve(CACHE_DIR, `${symbol.toUpperCase()}.json`),
+      JSON.stringify(prices, null, 2)
+    );
+  } catch {
+    // Silently skip — filesystem is likely read-only (Vercel)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -47,14 +50,14 @@ function writeCache(symbol: string, prices: HistoricalPrice[]): void {
  * Fetch ~1250 trading days (roughly 5 years) of daily price history
  * from Financial Modeling Prep (stable API).
  *
- * Checks `.cache/<TICKER>.json` first to save API credits.
+ * Checks `.cache/<TICKER>.json` first to save API credits (local dev).
+ * On Vercel the cache is skipped gracefully — every request hits FMP.
  * Returns the data sorted oldest → newest.
  */
 export async function getHistoricalPrices(
   symbol: string
 ): Promise<{ data: HistoricalPrice[] | null; error: string | null }> {
-  // ── Cache check ──────────────────────────────────────────────────
-  ensureCacheDir();
+  // ── Cache check (safe — returns null on read-only fs) ────────────
   const cached = readCache(symbol);
   if (cached) {
     console.log("🪙 Bar Friend found the data in the vault!");
@@ -68,7 +71,7 @@ export async function getHistoricalPrices(
     return {
       data: null,
       error:
-        "We're missing the API key — add NEXT_PUBLIC_FMP_API_KEY to your .env.local file and restart the dev server.",
+        "We're missing the API key — add NEXT_PUBLIC_FMP_API_KEY to your .env.local file (or Vercel Environment Variables) and redeploy.",
     };
   }
 
@@ -118,7 +121,7 @@ export async function getHistoricalPrices(
       }))
       .reverse();
 
-    // ── Write to cache ─────────────────────────────────────────────
+    // ── Write to cache (safe — silently skips on Vercel) ───────────
     writeCache(symbol, prices);
 
     return { data: prices, error: null };
