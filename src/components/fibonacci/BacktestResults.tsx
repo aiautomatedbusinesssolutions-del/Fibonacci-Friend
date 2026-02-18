@@ -186,7 +186,7 @@ export function BacktestResults({ ticker, prices }: BacktestResultsProps) {
           </div>
 
           <div className="space-y-1.5">
-            {result.touches.map((touch) => (
+            {[...result.touches].reverse().map((touch) => (
               <TouchRow key={touch.date} touch={touch} />
             ))}
           </div>
